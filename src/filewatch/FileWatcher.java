@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class FileWatcher {
@@ -27,8 +28,11 @@ public class FileWatcher {
 
 	private Set<File> processedFiles = new HashSet<>();
 
-	public FileWatcher(Path path, Consumer<Set<File>> fileConsumer) throws IOException {
+	private final Predicate<Path> filter;
+
+	public FileWatcher(Path path, Predicate<Path> filter, Consumer<Set<File>> fileConsumer) throws IOException {
 		this.path = path;
+		this.filter = filter;
 		pollingInterval = 100;
 		for (File file : files(path)) {
 			processedFiles.add(file);
@@ -65,8 +69,8 @@ public class FileWatcher {
 
 	protected Set<File> files(Path path) throws IOException {
 		return Files.walk(path) //
+				.filter(filter) //
 				.map(e -> e.toFile()) //
-				.filter(e -> e.getName().endsWith(".json")) //
 				.collect(Collectors.toSet());
 	}
 
