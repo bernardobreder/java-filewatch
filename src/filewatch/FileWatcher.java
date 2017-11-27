@@ -16,13 +16,9 @@ import java.util.stream.Collectors;
 
 public class FileWatcher {
 
-	private Path path;
-
 	private int pollingInterval;
 
 	private Timer fileWatcher;
-
-	private long lastReadTimeStamp = 0L;
 
 	private final Map<File, Long> timestamps = new HashMap<>();
 
@@ -30,8 +26,7 @@ public class FileWatcher {
 
 	private final Predicate<Path> filter;
 
-	public FileWatcher(Path path, Predicate<Path> filter, Consumer<Set<File>> fileConsumer) throws IOException {
-		this.path = path;
+	public FileWatcher(Path path, Predicate<Path> filter, Consumer<FileWatcherChanged> fileConsumer) throws IOException {
 		this.filter = filter;
 		pollingInterval = 100;
 		for (File file : files(path)) {
@@ -43,21 +38,28 @@ public class FileWatcher {
 			@Override
 			public void run() {
 				try {
+					Set<Path> addedPaths = new HashSet<>();
+					Set<Path> changedPaths = new HashSet<>();
 					Set<File> files = files(path);
 					Set<File> changedFiles = new HashSet<>();
 					for (File file : files) {
 						Long timestamp = timestamps.get(file);
 						long lastModified = file.lastModified();
 						if (timestamp == null || lastModified > timestamp) {
+							if (timestamp == null) {
+								addedPaths.add(file.toPath());
+							} else {
+								changedPaths.add(file.toPath());
+							}
 							timestamps.put(file, lastModified);
 							changedFiles.add(file);
 						}
 					}
 					processedFiles.removeAll(files);
-					changedFiles.addAll(processedFiles);
+					Set<Path> removedPaths = processedFiles.stream().map(e -> e.toPath()).collect(Collectors.toSet());
 					processedFiles = files;
 					if (!changedFiles.isEmpty()) {
-						fileConsumer.accept(changedFiles);
+						fileConsumer.accept(new FileWatcherChanged(addedPaths, changedPaths, removedPaths));
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -72,6 +74,23 @@ public class FileWatcher {
 				.filter(filter) //
 				.map(e -> e.toFile()) //
 				.collect(Collectors.toSet());
+	}
+
+	public static class FileWatcherChanged {
+
+		public final Set<Path> addedPaths;
+
+		public final Set<Path> changedPaths;
+
+		public final Set<Path> removedPaths;
+
+		public FileWatcherChanged(Set<Path> addedPaths, Set<Path> changedPaths, Set<Path> removedPaths) {
+			super();
+			this.addedPaths = addedPaths;
+			this.changedPaths = changedPaths;
+			this.removedPaths = removedPaths;
+		}
+
 	}
 
 }
