@@ -28,7 +28,7 @@ public class FileWatcher {
 
 	public FileWatcher(Path path, Predicate<Path> filter, Consumer<FileWatcherChanged> fileConsumer) throws IOException {
 		this.filter = filter;
-		pollingInterval = 100;
+		pollingInterval = 200;
 		for (File file : files(path)) {
 			processedFiles.add(file);
 			timestamps.put(file, file.lastModified());
