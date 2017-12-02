@@ -1,5 +1,7 @@
 package filewatch;
 
+import static java.util.stream.Collectors.toSet;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -73,7 +75,7 @@ public class FileWatcher {
 		return Files.walk(path) //
 				.filter(filter) //
 				.map(e -> e.toFile()) //
-				.collect(Collectors.toSet());
+				.collect(toSet());
 	}
 
 	public static class FileWatcherChanged {
